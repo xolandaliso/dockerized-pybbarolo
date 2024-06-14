@@ -1,24 +1,22 @@
-from pyBBarolo.wrapper import FitMod3D
-from pyBBarolo import Ellprof
+
+import os, sys
 import numpy as np
 import pylab as pl
-import os
 from astropy.io import fits
+from pyBBarolo import Ellprof
+from pyBBarolo.wrapper import FitMod3D
 
-inpdir = 'cluster_dilated_cubelets/'
-outdir = 'cluster_dilated_output_free_vdisp/'
 
-galaxies = [
-            f for f in 
-                sorted(os.listdir(inpdir)) 
-                    if f[:-5] in os.listdir(outdir)
-            ] 
+inpdir = 'data/'
+outdir = 'output/'
+
+galaxies = [ 
+                f for f in sorted(os.listdir(inpdir)) 
+                           if f[:-5] in os.listdir(outdir) ] 
 
 for i, g in enumerate(galaxies):
 
-    cube = fits.open(
-                    f'{inpdir}/{g}'
-                    )    #opening the cube via astropy
+    cube = fits.open(f'{inpdir}/{g}')    #opening the cube via astropy
 
     if 'BMAJ' in cube[0].header:
 
@@ -26,41 +24,32 @@ for i, g in enumerate(galaxies):
 
         print('{0} = {1}'.format('BMAJ', bmaj))
 
-    rms = np.std(cube[0].data[0, :, :])
-
-    #print('RMS = %.7f' %rms)
+    rms = np.std(
+                cube[0].data[0, :, :] )
 
     #cut arguments, mostly for robust statistics
 
-    snrcut = np.arange(4, 2.5, -.5)         #4, 3.5, 3 previously
-    growthcut = np.arange(3, 1.5, -.5)      #3, 2.5, 2
+    snrcut = np.arange( 
+                        4, 2.5, -.5 )         #4, 3.5, 3
+    growthcut = np.arange(
+                           3, 1.5, -.5 )      #3, 2.5, 2
 
     #threshold args
 
-    grwth_threshold = np.arange(1, 2.5, .5)*rms
+    grwth_threshold = np.arange(
+                                1, 2.5, .5 ) * rms
 
     for k in range(len(growthcut)):
 
-        f3d = FitMod3D(
-                        f'{inpdir}/{g}'
-                        )
-
-        f3d.add_options(
-                        free = 'vrot vdisp', 
-                        outfolder = f"{outdir}/{g[:-5]}/{k}",
-                        mask = "SEARCH",
-                        snrcut = snrcut[k],
-                        growthcut = growthcut[k],
-                        ftype = 2, 
-                        wfunc = 1, 
-                        globalProfile=True,
-                        flagerrors = True,
-                        norm = 'LOCAL', 
-                        redshift = 0.042,
-                        restfreq = 1.42040575E9
-                    )
+        f3d = FitMod3D( 
+                        f'{inpdir}/{g}' )
+        
+        f3d.add_options( 
+                free = 'vrot vdisp', outfolder = f"{outdir}/{g[:-5]}/{k}",
+                mask = "SEARCH", snrcut = snrcut[k], 
+                growthcut = growthcut[k],ftype = 2, 
+                wfunc = 1, globalProfile=True,
+                flagerrors = True, norm = 'LOCAL',
+                redshift = 0.042, restfreq = 1.42040575E9 )
 
         f3d.run()
-
-        print('\n___________dynamical modelling done______________\n')
-

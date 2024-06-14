@@ -11,6 +11,8 @@ RUN apt -y update && apt install -y apt-utils && \
     gcc \
     git \
     wget \
+    less \
+    vim \
     curl \
     swig \
     libfftw3-dev \
@@ -39,30 +41,39 @@ RUN apt -y update && apt install -y apt-utils && \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # create a Bbarolo dir
-RUN mkdir /3dbarolo
+RUN mkdir /home/3dB
+RUN mkdir /home/3dB/data
 
 # and make it the work dir
-WORKDIR /3dbarolo
+WORKDIR /home/3dB
 
-COPY cluster_dilated_cubelets /3dbarolo
-
+COPY demo_data/ /home/3dB/data 
+COPY pybbarolo_new_model.py pybbarolo.py /home/3dB
 
 # trial for cfitsio ?
-RUN wget http://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio_latest.tar.gz \
-    && tar -xvf cfitsio_latest.tar.gz \
-    && cd cfitsio-4.3.0 \
-    && ./configure \
+RUN wget http://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.4.0.tar.gz \
+    && tar -xvf cfitsio-4.4.0.tar.gz \
+    && cd cfitsio-4.4.0 \
+    && ./configure --prefix=/usr \
     && make \
     && make install \
-    && make clean && echo cfitsio installed successfully
+    && make clean && echo "cfitsio installed successfully"
 
-# now install 3dBBarolo
-RUN git clone -b master --single-branch https://github.com/editeodoro/Bbarolo \
+# Verify cfitsio installation
+RUN ldconfig
+
+# Set environment variables to help find cfitsio
+ENV CFITSIO=/usr
+ENV LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
+
+# now install 3dB
+
+RUN  git clone -b master --single-branch https://github.com/editeodoro/Bbarolo \
     && cd Bbarolo \
-    && ./configure \
+    && ./configure --with-cfitsio=$CFITSIO \
     && make \
     && make install \
-    && make clean && echo 3dB has been installed
+    && make clean && echo "3dB has been installed"
 
 #pip installs
 
@@ -73,9 +84,8 @@ RUN for x in \
     ; do pip3 install --no-cache-dir $x; done
 
 #set python to 3
-
 RUN ln -s /usr/bin/python3 /usr/bin/python
 ENV PYTHONPATH=/usr/local/lib/python
 
-CMD ['python', 'pyBBarolo_new_model.py']
+CMD ["/bin/bash"]
 
